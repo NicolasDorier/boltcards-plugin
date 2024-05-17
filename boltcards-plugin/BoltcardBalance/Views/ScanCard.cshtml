@@ -1,0 +1,254 @@
+@using BTCPayServer.Abstractions.Extensions
+
+@{
+	ViewData["Title"] = "Boltcard Balances";
+	ViewData["ShowFooter"] = false;
+	Layout = "/Views/Shared/_LayoutWizard.cshtml";
+}
+
+@section PageHeadContent
+{
+<style>
+		.amount-col {
+		text-align: right;
+		white-space: nowrap;
+	}
+</style>
+}
+
+<header class="text-center">
+	<h1>Consult balance</h1>
+	<p class="lead text-secondary mt-3" id="explanation">Scan your card for consulting the balance</p>
+</header>
+
+<div id="body" class="my-4">
+    <div id="error" class="d-flex align-items-center justify-content-center d-none">
+       
+		<p class="text-danger"></p>
+    </div>
+    <div id="actions" class="d-flex align-items-center justify-content-center d-none">
+		<div class="d-flex gap-3 mt-3 mt-sm-0">
+			<a id="start-scan-btn" class="btn btn-primary" href="#">Ask permission...</a>
+		</div>
+	</div>
+	<div id="qr" class="d-flex flex-column align-items-center justify-content-center d-none">
+		<div class="d-inline-flex flex-column" style="width:256px">
+			<div class="qr-container mb-2">
+				<vc:qr-code data="@Context.Request.GetCurrentUrlWithQueryString()" />
+			</div>
+		</div>
+        <p class="text-secondary">NFC not supported in this device</p>
+        <p class="text-secondary">Please use Chrome on Android, or a lightning wallet that supports Bolt cards, or extract the NFC value from the card (using an NFC reader app) and input below</p>
+        <div class="input-group">
+            <input type="text" class="form-control" id="nfc-manual-value" placeholder="lnurlw:..." />
+            <button class="btn btn-secondary" id="nfc-manual-submit">Extract</button>
+        </div>
+	</div>
+	<div id="scanning-btn" class="d-flex align-items-center justify-content-center d-none">
+		<div class="d-flex gap-3 mt-3 mt-sm-0">
+			<a id="scanning-btn-link" class="action-button" style="font-size: 50px;" ></a>
+		</div>
+	</div>
+	<div id="balance" class="row">
+		<div id="balance-table"></div>
+	</div>
+</div>
+
+<script>
+	(function () {
+		var permissionGranted = false;
+		var ndef = null;
+		var abortController = null;
+        
+        function handleError(e){
+			if (e) {
+				document.querySelector("#error p").innerHTML = e.message;
+				document.getElementById("error").classList.remove("d-none");
+			}
+			else
+			{
+				document.getElementById("error").classList.add("d-none");
+			}
+        }
+
+		function toggleDetailsWhenPressed(buttonId, className)
+		{
+			var button = document.getElementById(buttonId);
+			if (button) {
+				var el = document.getElementsByClassName("boltcard-details");
+				button.addEventListener("click", function () {
+					for (var i = 0; i < el.length; i++) {
+						if (el[i].classList.contains(className)) {
+							if (el[i].classList.contains("d-none"))
+								el[i].classList.remove("d-none");
+							else
+								el[i].classList.add("d-none");
+						}
+						else {
+							el[i].classList.add("d-none");
+						}
+					}
+				});
+			}
+		}
+        
+		function delay(ms) {
+			return new Promise(resolve => setTimeout(resolve, ms));
+		}
+		async function showBalance(lnurlw) {
+            try {
+                const initState = (!('NDEFReader' in window)) ? "NFCNotSupported" : "WaitingForCard";
+                setState("Submitting");
+                var uiDelay = delay(1000);
+                var url = window.location.href.replace("#", "");
+                url = url.split("?")[0] + "?" + lnurlw.split("?")[1];
+                // url = "https://testnet.demo.btcpayserver.org/boltcards/balance?p=...&c=..."
+
+				var params = new URLSearchParams(window.location.search);
+				if (params.toString()) {
+					url += "&" + params;
+				}
+    
+                var xhttp = new XMLHttpRequest();
+                xhttp.onreadystatechange = async function () {
+                    if (this.readyState == 4 && this.status == 200 && this.responseText) {
+                        document.getElementById("balance-table").innerHTML = this.responseText;
+                        document.getElementById("CancelWizard").addEventListener("click", function (e) {
+                            e.preventDefault();
+                            setState(initState);
+                            document.getElementById("balance-table").innerHTML = "";
+                        });
+
+						toggleDetailsWhenPressed('lnurlwithdraw-button', 'lnurl-pay');
+						toggleDetailsWhenPressed('reset-button', 'boltcard-reset');
+
+						await uiDelay;
+                        setState("ShowBalance");
+                    }
+                    else if(this.readyState == 4 && this.status == 404) {
+                        setState(initState);
+						handleError(new Error("Initialized by a different provider"));
+                    }
+                    else {
+                        setState(initState);
+                    }
+                };
+                xhttp.open('GET', url, true);
+                xhttp.send(new FormData());
+             }catch (e) {
+                handleError(e);
+             }
+		}
+
+		async function startScan() {
+            try {
+                if (!('NDEFReader' in window)) {
+                	return;
+                }
+                ndef = new NDEFReader();
+                abortController = new AbortController();
+                abortController.signal.onabort = () => setState("WaitingForCard");
+    
+                await ndef.scan({ signal: abortController.signal })
+                setState("WaitingForCard");
+                ndef.onreading = async ({ message }) => {
+					handleError(null);
+                    const record = message.records[0];
+					if (message.records.length === 0)
+					{
+                        setState("WaitingForCard");
+						handleError(new Error("Card is blank"));
+						return;
+					}
+                    const textDecoder = new TextDecoder('utf-8');
+                    const decoded = textDecoder.decode(record.data);
+                    await showBalance(decoded);
+                }; 
+            }
+            catch (e) {
+                handleError(e);
+            }
+		}
+
+		function setState(state)
+		{
+            document.querySelector("#error p").innerHTML = "";
+            document.getElementById("error").classList.add("d-none");
+			document.getElementById("actions").classList.add("d-none");
+			document.getElementById("qr").classList.add("d-none");
+			document.getElementById("scanning-btn").classList.add("d-none");
+			document.getElementById("balance").classList.add("d-none");
+
+			if (state === "NFCNotSupported")
+			{
+				document.getElementById("qr").classList.remove("d-none");
+                document.querySelectorAll(".nfc-supported").forEach(el => {
+                    el.classList.add("d-none");
+                });
+			}
+			else if (state === "WaitingForPermission")
+			{
+
+				document.getElementById("actions").classList.remove("d-none");
+			}
+			else if (state === "WaitingForCard")
+			{
+				document.getElementById("scanning-btn").classList.remove("d-none");
+				document.getElementById("scanning-btn-link").innerHTML = "<i class=\"fa fa-wifi\"></i>";
+			}
+			else if (state == "Submitting")
+			{
+				document.getElementById("scanning-btn").classList.remove("d-none");
+				document.getElementById("scanning-btn-link").innerHTML = "<i class=\"fa fa-spinner\"></i>"
+			}
+			else if (state == "ShowBalance") {
+				document.getElementById("scanning-btn").classList.remove("d-none");
+				document.getElementById("scanning-btn-link").innerHTML = "<i class=\"fa fa-wifi\"></i>";
+				document.getElementById("balance").classList.remove("d-none");
+			}
+		}
+		document.addEventListener("DOMContentLoaded", async () => {
+            try {
+              
+                var nfcSupported = 'NDEFReader' in window;
+                if (!nfcSupported) {
+                    setState("NFCNotSupported");
+                }
+                else {
+                    setState("WaitingForPermission");
+                    var granted = (await navigator.permissions.query({ name: 'nfc' })).state === 'granted';
+                    if (granted)
+                    {
+                        setState("WaitingForCard");
+                        startScan();
+                    }
+                }
+                delegate('click', "#start-scan-btn", startScan);
+                delegate('click', "#nfc-manual-submit", async function () {
+                    var value = document.getElementById("nfc-manual-value").value;
+                    if (value) {
+                        await showBalance(value);
+                        document.querySelector(".boltcard-reset").classList.add("d-none");
+                    }
+                });
+                
+                delegate('click', "#show-wipe-qr", ()=>{
+                    const el = document.getElementById("wipe-qr");
+                    if (el.classList.contains("d-none")){
+                        el.classList.remove("d-none");
+                    } else {
+                        el.classList.add("d-none")
+                    }
+                    
+                });
+                delegate('click', "#wipe-qr", ()=>{
+                    
+                });
+            }
+            catch (e) {
+                handleError(e);
+            }
+			 // showBalance("lnurl://ewfw?p=test&c=test");
+		});
+	})();
+</script>

@@ -5,9 +5,10 @@
 
   <!-- Plugin specific properties -->
   <PropertyGroup>
-    <Product>BTCPay Server Plugin Template</Product>
-    <Description>A template for your own BTCPay Server plugin.</Description>
+    <Product>Boltcards Extension</Product>
+    <Description>Program a batch of Boltcards through the Boltcards factory. Then let the users consult their balance, reset, or top-up their cards.</Description>
     <Version>1.0.0</Version>
+	<AssemblyName>BTCPayServer.Plugins.Boltcards</AssemblyName>
   </PropertyGroup>
 
   <!-- Plugin development properties -->
@@ -15,6 +16,7 @@
     <AddRazorSupportForMvc>true</AddRazorSupportForMvc>
     <PreserveCompilationContext>false</PreserveCompilationContext>
     <GenerateEmbeddedFilesManifest>true</GenerateEmbeddedFilesManifest>
+    <RootNamespace>BTCPayServer.Plugins.Boltcards</RootNamespace>
   </PropertyGroup>
 
   <!-- This will make sure that referencing BTCPayServer doesn't put any artifact in the published directory -->
@@ -27,8 +29,8 @@
   </ItemDefinitionGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\btcpayserver\BTCPayServer.Abstractions\BTCPayServer.Abstractions.csproj" />
     <ProjectReference Include="..\btcpayserver\BTCPayServer\BTCPayServer.csproj" />
-    <EmbeddedResource Include="Resources\**" />
     <!--
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.0" />

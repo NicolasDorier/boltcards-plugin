@@ -15,6 +15,10 @@ namespace BTCPayServer.Plugins.Boltcards
 {
     public class BoltcardPlugin : BaseBTCPayServerPlugin
     {
+		public override IBTCPayServerPlugin.PluginDependency[] Dependencies { get; } =
+		{
+			new() { Identifier = nameof(BTCPayServer), Condition = ">=1.13.2" }
+		};
 		public override void Execute(IServiceCollection services)
 		{
 			services.AddSingleton<IUIExtension>(new UIExtension($"{BoltcardBalance.BoltcardBalancePlugin.ViewsDirectory}/NavExtension.cshtml", "header-nav"));

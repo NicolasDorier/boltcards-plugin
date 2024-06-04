@@ -32,6 +32,7 @@ If you need to program a large batch of Boltcards, this plugin allows you to do 
 9. You can then program Boltcards one by one through the app, as shown in the following video.
 
 See this video for more information:
+
 [![How to program boltcards](https://img.youtube.com/vi/82uyNBM-Vn4/0.jpg)](https://www.youtube.com/watch?v=82uyNBM-Vn4)
 
 ### Boltcard Balance
@@ -45,6 +46,7 @@ By scanning this QR code, you can easily view the history of your transactions w
 You can also access a QR code in the balance view of the Boltcard for topping up.
 
 See this video for more information:
+
 [![How to see boltcards balance](https://img.youtube.com/vi/4wHTP9NbptM/0.jpg)](https://www.youtube.com/watch?v=4wHTP9NbptM)
 
 ### Boltcard Reset
@@ -54,4 +56,5 @@ This plugin is similar to `Boltcard Balance` but enables a user to easily sweep 
 By resetting a Boltcard, you can reprogram it.
 
 See this video for more information:
+
 [![How to reset boltcards](https://img.youtube.com/vi/OewDRUMNk7c/0.jpg)](https://www.youtube.com/watch?v=OewDRUMNk7c)

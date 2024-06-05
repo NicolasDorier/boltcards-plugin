@@ -38,6 +38,9 @@
                     <div class="lnurl-pay boltcard-details d-none">
                         <vc:qr-code data="@Model.LNUrlBech32" />
                     </div>
+                    <div class="lnurl-pay boltcard-details d-flex gap-3 mt-3 mt-sm-0 d-none">
+                        <a class="btn btn-primary" target="_blank" href="@Model.LNUrlBech32">Deposit from Wallet...</a>
+                    </div>
                 }
             </div>
         </div>

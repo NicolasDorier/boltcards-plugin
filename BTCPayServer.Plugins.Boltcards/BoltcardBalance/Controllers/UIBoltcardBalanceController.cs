@@ -63,12 +63,15 @@ namespace BTCPayServer.Plugins.BoltcardBalance.Controllers
                 return View($"{BoltcardBalancePlugin.ViewsDirectory}/ScanCard.cshtml");
             }
 
+            //var bech32LNUrl = new Uri(Url.Action(nameof(GetTopupBoltcardRequest), "UIBoltcardBalance", new { p }, Request.Scheme), UriKind.Absolute);
+            //bech32LNUrl = LNURL.LNURL.EncodeUri(bech32LNUrl, "payRequest", true);
             //return View($"{BoltcardBalancePlugin.ViewsDirectory}/BalanceView.cshtml", new BalanceViewModel()
             //{
             //    AmountDue = 10000m,
             //    Currency = "SATS",
             //    Transactions = [new() { Date = DateTimeOffset.UtcNow, Balance = -3.0m }, new() { Date = DateTimeOffset.UtcNow, Balance = -5.0m }],
-            //    ViewMode = Mode.Reset
+            //    ViewMode = Mode.TopUp,
+            //    LNUrlBech32 = bech32LNUrl.AbsoluteUri,
             //});
 
             var issuerKey = await _settingsRepository.GetIssuerKey(_env);
@@ -141,7 +144,7 @@ namespace BTCPayServer.Plugins.BoltcardBalance.Controllers
 
 		private string GetPayLink(string p, string scheme)
 		{
-			return Url.Action(nameof(GetTopupBoltcardRequest), "UIBoltcard", new { p }, scheme)!;
+			return Url.Action(nameof(GetTopupBoltcardRequest), "UIBoltcardBalance", new { p }, scheme)!;
 		}
 
 		[NonAction]
@@ -167,14 +170,14 @@ namespace BTCPayServer.Plugins.BoltcardBalance.Controllers
 
             var totalPaid = payouts.Where(p => p.Entity.State != PayoutState.Cancelled).Select(p => p.Blob.Amount).Sum();
 
-            var bech32LNUrl = new Uri(Url.Action(nameof(GetTopupBoltcardRequest), "UIBoltcard", new { p }, Request.Scheme), UriKind.Absolute);
+            var bech32LNUrl = new Uri(Url.Action(nameof(GetTopupBoltcardRequest), "UIBoltcardBalance", new { p }, Request.Scheme), UriKind.Absolute);
             bech32LNUrl = LNURL.LNURL.EncodeUri(bech32LNUrl, "payRequest", true);
             var vm = new BalanceViewModel()
             {
                 Currency = blob.Currency,
                 AmountDue = blob.Limit - totalPaid,
                 LNUrlBech32 = bech32LNUrl.AbsoluteUri,
-                LNUrlPay = Url.Action(nameof(GetTopupBoltcardRequest), "UIBoltcard", new { p }, "lnurlp"),
+                LNUrlPay = Url.Action(nameof(GetTopupBoltcardRequest), "UIBoltcardBalance", new { p }, "lnurlp"),
                 BoltcardKeysResetLink = $"boltcard://reset?url={GetBoltcardDeeplinkUrl(pp.Id, OnExistingBehavior.KeepVersion)}",
                 WipeData = JObject.FromObject(new
                 {

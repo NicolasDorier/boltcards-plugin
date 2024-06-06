@@ -21,7 +21,6 @@ namespace BTCPayServer.Plugins.BoltcardFactory.Controllers
     [Route("apps")]
     public class APIBoltcardFactoryController : ControllerBase
     {
-        private readonly ILogger<APIBoltcardFactoryController> _logger;
         private readonly AppService _appService;
         private readonly SettingsRepository _settingsRepository;
         private readonly BTCPayServerEnvironment _env;
@@ -29,14 +28,12 @@ namespace BTCPayServer.Plugins.BoltcardFactory.Controllers
         private readonly PullPaymentHostedService _ppService;
 
         public APIBoltcardFactoryController(
-            ILogger<APIBoltcardFactoryController> logger,
             AppService appService,
             SettingsRepository settingsRepository,
             BTCPayServerEnvironment env,
             ApplicationDbContextFactory dbContextFactory,
             PullPaymentHostedService ppService)
         {
-            _logger = logger;
             _appService = appService;
             _settingsRepository = settingsRepository;
             _env = env;
@@ -57,20 +54,17 @@ namespace BTCPayServer.Plugins.BoltcardFactory.Controllers
             {
                 if (request.UID is not null)
                 {
-                    _logger.LogInformation("You should pass either LNURLW or UID but not both");
                     ModelState.AddModelError(nameof(request.LNURLW), "You should pass either LNURLW or UID but not both");
                     return this.CreateValidationError(ModelState);
                 }
                 var p = ExtractP(request.LNURLW);
                 if (p is null)
                 {
-                    _logger.LogInformation("The LNURLW should contains a 'p=' parameter");
                     ModelState.AddModelError(nameof(request.LNURLW), "The LNURLW should contains a 'p=' parameter");
                     return this.CreateValidationError(ModelState);
                 }
                 if (issuerKey.TryDecrypt(p) is not BoltcardPICCData picc)
                 {
-                    _logger.LogInformation("The LNURLW 'p=' parameter cannot be decrypted");
                     ModelState.AddModelError(nameof(request.LNURLW), "The LNURLW 'p=' parameter cannot be decrypted");
                     return this.CreateValidationError(ModelState);
                 }
@@ -79,7 +73,6 @@ namespace BTCPayServer.Plugins.BoltcardFactory.Controllers
 
             if (request?.UID is null || request.UID.Length != 7)
             {
-                _logger.LogInformation("The UID is required and should be 7 bytes");
                 ModelState.AddModelError(nameof(request.UID), "The UID is required and should be 7 bytes");
                 return this.CreateValidationError(ModelState);
             }
@@ -107,7 +100,6 @@ namespace BTCPayServer.Plugins.BoltcardFactory.Controllers
             {
                 if (registration?.PullPaymentId is null)
                 {
-                    _logger.LogInformation("This card isn't registered");
                     ModelState.AddModelError(nameof(request.UID), "This card isn't registered");
                     return this.CreateValidationError(ModelState);
                 }

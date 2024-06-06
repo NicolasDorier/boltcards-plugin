@@ -117,7 +117,7 @@ namespace BTCPayServer.Plugins.BoltcardBalance.Controllers
 
             var cryptoCode = "BTC";
 			var currency = pp.GetBlob().Currency;
-            if (currency != cryptoCode || currency is not ("SATS" or "BTC"))
+            if (currency is not ("SATS" or "BTC"))
 				return BadRequest(new LNUrlStatusResponse { Status = "ERROR", Reason = $"Invalid currency for the pull payment (only {cryptoCode} and SATS are supported)" });
 
             var unit = currency == "SATS" ? LightMoneyUnit.Satoshi : LightMoneyUnit.BTC;

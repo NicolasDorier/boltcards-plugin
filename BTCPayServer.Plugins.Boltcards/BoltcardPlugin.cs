@@ -3,6 +3,7 @@ using BTCPayServer.Abstractions.Models;
 using BTCPayServer.Abstractions.Services;
 using BTCPayServer.Plugins.BoltcardFactory;
 using BTCPayServer.Plugins.Boltcards;
+using BTCPayServer.Plugins.Boltcards.HostedServices;
 using BTCPayServer.Services.Apps;
 using Microsoft.Extensions.DependencyInjection;
 using System;
@@ -21,7 +22,8 @@ namespace BTCPayServer.Plugins.Boltcards
 		};
 		public override void Execute(IServiceCollection services)
 		{
-			services.AddSingleton<IUIExtension>(new UIExtension($"{BoltcardBalance.BoltcardBalancePlugin.ViewsDirectory}/NavExtension.cshtml", "header-nav"));
+			services.AddHostedService<TopupRequestHostedService>();
+            services.AddSingleton<IUIExtension>(new UIExtension($"{BoltcardBalance.BoltcardBalancePlugin.ViewsDirectory}/NavExtension.cshtml", "header-nav"));
 			services.AddSingleton<AppBaseType, BoltcardFactory.BoltcardFactoryPlugin.BoltcardFactoryAppType>();
 			services.AddSingleton<IUIExtension>(new UIExtension($"{BoltcardFactory.BoltcardFactoryPlugin.ViewsDirectory}/NavExtension.cshtml", "header-nav"));
 		}

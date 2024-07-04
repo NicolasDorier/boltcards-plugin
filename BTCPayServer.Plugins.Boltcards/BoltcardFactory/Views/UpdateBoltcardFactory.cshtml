@@ -1,4 +1,5 @@
 @using BTCPayServer.Abstractions.Extensions
+@using BTCPayServer.Abstractions.Models
 @using BTCPayServer.Client
 @using BTCPayServer.Views.Stores
 @using Microsoft.AspNetCore.Routing
@@ -6,6 +7,7 @@
 @{
 	ViewData["Title"] = "Update Boltcard Factory";
 	Layout = "/Views/Shared/_Layout.cshtml";
+    var appId = @Context.GetRouteValue("appId");
 }
 
 @section PageHeadContent {
@@ -17,7 +19,7 @@
     <script src="~/vendor/summernote/summernote-bs5.js" asp-append-version="true"></script>
 }
 
-<form method="post" asp-route-appId="@Context.GetRouteValue("appId")" asp-action="UpdateBoltcardFactory">
+<form method="post" asp-route-appId="@appId" asp-action="UpdateBoltcardFactory">
     <div class="sticky-header d-flex align-items-center justify-content-between">
         <h2 class="mb-0">@ViewData["Title"]</h2>
 		<div class="d-flex gap-3 mt-3 mt-sm-0">
@@ -129,3 +131,8 @@
         </div>
     </div>
 </form>
+
+<div class="d-grid d-sm-flex flex-wrap gap-3 mt-3">
+    <a id="DeleteApp" class="btn btn-outline-danger" asp-controller="UIApps" asp-action="DeleteApp" asp-route-appId="@appId" data-bs-toggle="modal" data-bs-target="#ConfirmModal" data-description="The app <strong>@Html.Encode(Model.Name)</strong> and its settings will be permanently deleted." data-confirm-input="DELETE" permission="@Policies.CanModifyStoreSettings">Delete this app</a>
+</div>
+<partial name="_Confirm" model="@(new ConfirmModel("Delete app", "This app will be removed from this store.", "Delete"))" permission="@Policies.CanModifyStoreSettings" />

@@ -99,7 +99,7 @@ namespace BTCPayServer.Plugins.BoltcardFactory.Controllers
                 PaymentMethods = req.PaymentMethods,
                 BOLT11Expiration = req.BOLT11Expiration?.TotalDays is double v ? (long)v : 30,
                 PaymentMethodItems =
-                                paymentMethods.Select(id => new SelectListItem(id.ToPrettyString(), id.ToString(), true))
+                                paymentMethods.Select(id => new SelectListItem(id.ToPrettyString(), id.ToString(), req.PaymentMethods.Contains(id.ToString())))
             };
         }
 

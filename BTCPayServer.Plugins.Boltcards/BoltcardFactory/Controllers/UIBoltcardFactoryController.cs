@@ -87,11 +87,11 @@ namespace BTCPayServer.Plugins.BoltcardFactory.Controllers
             return base.View($"{BoltcardFactoryPlugin.ViewsDirectory}/UpdateBoltcardFactory.cshtml", CreateViewModel(paymentMethods, req));
         }
 
-        private static NewPullPaymentModel CreateViewModel(List<PaymentMethodId> paymentMethods, CreatePullPaymentRequest req)
+        private NewPullPaymentModel CreateViewModel(List<PaymentMethodId> paymentMethods, CreatePullPaymentRequest req)
         {
             return new NewPullPaymentModel
             {
-                Name = req.Name,
+                Name = GetCurrentApp().Name,
                 Currency = req.Currency,
                 Amount = req.Amount,
                 AutoApproveClaims = req.AutoApproveClaims,
@@ -144,7 +144,7 @@ namespace BTCPayServer.Plugins.BoltcardFactory.Controllers
                 ModelState.AddModelError(nameof(model.Name), "Not all payment methods are supported");
             }
             if (!ModelState.IsValid)
-                return View(model);
+                return View($"{BoltcardFactoryPlugin.ViewsDirectory}/UpdateBoltcardFactory.cshtml", model);
             model.AutoApproveClaims = model.AutoApproveClaims && (await
                 _authorizationService.AuthorizeAsync(User, CurrentStore.Id, Policies.CanCreatePullPayments)).Succeeded;
 
@@ -159,6 +159,7 @@ namespace BTCPayServer.Plugins.BoltcardFactory.Controllers
                 PaymentMethods = model.PaymentMethods.ToArray()
             };
             var app = GetCurrentApp();
+            app.Name = model.Name;
             app.SetSettings(req);
             await _appService.UpdateOrCreateApp(app);
             var paymentMethods = await _payoutHandlers.GetSupportedPaymentMethods(CurrentStore);

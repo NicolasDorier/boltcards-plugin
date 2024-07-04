@@ -145,8 +145,17 @@ namespace BTCPayServer.Plugins.BoltcardFactory.Controllers
             }
             if (!ModelState.IsValid)
                 return View($"{BoltcardFactoryPlugin.ViewsDirectory}/UpdateBoltcardFactory.cshtml", model);
-            model.AutoApproveClaims = model.AutoApproveClaims && (await
-                _authorizationService.AuthorizeAsync(User, CurrentStore.Id, Policies.CanCreatePullPayments)).Succeeded;
+
+            model.AutoApproveClaims = true;
+            
+            var canApproveClaim = await CanApproveClaim();
+            var previousSettings = GetCurrentApp().GetSettings<CreatePullPaymentRequest>();
+
+            if (!canApproveClaim && !previousSettings.AutoApproveClaims && model.AutoApproveClaims)
+            {
+                ModelState.AddModelError(nameof(model.Name), "You need 'btcpay.store.cancreatepullpayments' permission.");
+                return View($"{BoltcardFactoryPlugin.ViewsDirectory}/UpdateBoltcardFactory.cshtml", model);
+            }
 
             var req = new CreatePullPaymentRequest()
             {
@@ -170,6 +179,13 @@ namespace BTCPayServer.Plugins.BoltcardFactory.Controllers
             });
             return View($"{BoltcardFactoryPlugin.ViewsDirectory}/UpdateBoltcardFactory.cshtml", CreateViewModel(paymentMethods, req));
         }
+
+        private async Task<bool> CanApproveClaim()
+        {
+            return (await
+                _authorizationService.AuthorizeAsync(User, CurrentStore.Id, Policies.CanCreatePullPayments)).Succeeded;
+        }
+
         private async Task<string?> GetStoreDefaultCurrentIfEmpty(string storeId, string? currency)
         {
             if (string.IsNullOrWhiteSpace(currency))

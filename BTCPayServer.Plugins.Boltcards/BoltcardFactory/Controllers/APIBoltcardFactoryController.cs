@@ -107,6 +107,12 @@ namespace BTCPayServer.Plugins.BoltcardFactory.Controllers
                 }
 
                 var ppId = registration.PullPaymentId;
+                var pp = await _ppService.GetPullPayment(ppId, false);
+                if (pp.StoreId != app.StoreDataId)
+                {
+                    ModelState.AddModelError(nameof(request.UID), "This card isn't registered");
+                    return this.CreateValidationError(ModelState);
+                }
                 version = registration.Version;
                 int retryCount = 0;
                 retry:

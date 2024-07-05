@@ -10,6 +10,7 @@ using BTCPayServer.HostedServices;
 using BTCPayServer.NTag424;
 using BTCPayServer.Services;
 using BTCPayServer.Services.Apps;
+using LNURL;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
@@ -48,7 +49,7 @@ namespace BTCPayServer.Plugins.BoltcardFactory.Controllers
             if (app is null)
                 return NotFound();
             var issuerKey = await _settingsRepository.GetIssuerKey(_env);
-
+            BoltcardPICCData? picc = null;
             // LNURLW is used by deeplinks
             if (request?.LNURLW is not null)
             {
@@ -63,11 +64,12 @@ namespace BTCPayServer.Plugins.BoltcardFactory.Controllers
                     ModelState.AddModelError(nameof(request.LNURLW), "The LNURLW should contains a 'p=' parameter");
                     return this.CreateValidationError(ModelState);
                 }
-                if (issuerKey.TryDecrypt(p) is not BoltcardPICCData picc)
+                if (issuerKey.TryDecrypt(p) is not BoltcardPICCData o)
                 {
                     ModelState.AddModelError(nameof(request.LNURLW), "The LNURLW 'p=' parameter cannot be decrypted");
                     return this.CreateValidationError(ModelState);
                 }
+                picc = o;
                 request.UID = picc.Uid;
             }
 
@@ -85,29 +87,52 @@ namespace BTCPayServer.Plugins.BoltcardFactory.Controllers
                 _ => request.OnExisting
             };
 
+            BoltcardKeys keys;
             int version;
-            string ppId;
-            var registration = await _dbContextFactory.GetBoltcardRegistration(issuerKey, request.UID);
-
             if (request.OnExisting == OnExistingBehavior.UpdateVersion)
             {
                 var req = app.GetSettings<CreatePullPaymentRequest>();
-                ppId = await _ppService.CreatePullPayment(app.StoreDataId, req);
+                var ppId = await _ppService.CreatePullPayment(app.StoreDataId, req);
                 version = await _dbContextFactory.LinkBoltcardToPullPayment(ppId, issuerKey, request.UID, request.OnExisting);
+                keys = issuerKey.CreatePullPaymentCardKey(request.UID, version, ppId).DeriveBoltcardKeys(issuerKey);
             }
             // If it's a reset, do not create a new pull payment
             else
             {
+                var registration = await _dbContextFactory.GetBoltcardRegistration(issuerKey, request.UID);
                 if (registration?.PullPaymentId is null)
                 {
                     ModelState.AddModelError(nameof(request.UID), "This card isn't registered");
                     return this.CreateValidationError(ModelState);
                 }
-                ppId = registration.PullPaymentId;
+
+                var ppId = registration.PullPaymentId;
                 version = registration.Version;
+                int retryCount = 0;
+                retry:
+                keys = issuerKey.CreatePullPaymentCardKey(request!.UID, version, ppId).DeriveBoltcardKeys(issuerKey);
+
+                // The server version may be higher than the card.
+                // If that is the case, let's try a few versions until we find the right one
+                // by checking c.
+                if (request?.LNURLW is { } lnurlw && 
+                    ExtractC(lnurlw) is string c &&
+                    picc is not null)
+                {
+                    if (!keys.AuthenticationKey.CheckSunMac(c, picc))
+                    {
+                        retryCount++;
+                        version--;
+                        if (version < 0 && retryCount > 5)
+                        {
+                            ModelState.AddModelError(nameof(request.UID), "Unable to get keys of this card, it might be caused by a version mismatch");
+                            return this.CreateValidationError(ModelState);
+                        }
+                        goto retry;
+                    }
+                }
             }
 
-            var keys = issuerKey.CreatePullPaymentCardKey(request.UID, version, ppId).DeriveBoltcardKeys(issuerKey);
             var boltcardUrl = Url.Action(nameof(UIBoltcardController.GetWithdrawRequest), "UIBoltcard");
             boltcardUrl = Request.GetAbsoluteUri(boltcardUrl);
             boltcardUrl = Regex.Replace(boltcardUrl, "^https?://", "lnurlw://");
@@ -125,7 +150,8 @@ namespace BTCPayServer.Plugins.BoltcardFactory.Controllers
 
             return Ok(resp);
         }
-        private string? ExtractP(string? url)
+
+        private string? Extract(string? url, string param, int size)
         {
             if (url is null || !Uri.TryCreate(url, UriKind.Absolute, out var uri))
                 return null;
@@ -133,10 +159,12 @@ namespace BTCPayServer.Plugins.BoltcardFactory.Controllers
             if (num == -1)
                 return null;
             string input = uri.AbsoluteUri.Substring(num);
-            Match match = Regex.Match(input, "p=([a-f0-9A-F]{32})");
+            Match match = Regex.Match(input, param + "=([a-f0-9A-F]{"+ size +"})");
             if (!match.Success)
                 return null;
             return match.Groups[1].Value;
         }
+        private string? ExtractP(string? url) => Extract(url, "p", 32);
+        private string? ExtractC(string? url) => Extract(url, "c", 16);
     }
 }

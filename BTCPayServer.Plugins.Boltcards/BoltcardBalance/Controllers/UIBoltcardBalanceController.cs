@@ -78,7 +78,6 @@ namespace BTCPayServer.Plugins.BoltcardBalance.Controllers
             var boltData = issuerKey.TryDecrypt(p);
             if (boltData?.Uid is null)
                 return NotFound();
-            var id = issuerKey.GetId(boltData.Uid);
             var registration = await _dbContextFactory.GetBoltcardRegistration(issuerKey, boltData, true);
             if (registration is null)
                 return NotFound();

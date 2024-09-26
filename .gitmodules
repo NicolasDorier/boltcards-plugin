@@ -1,4 +1,4 @@
 [submodule "btcpayserver"]
 	path = btcpayserver
 	url = https://github.com/btcpayserver/btcpayserver
-	branch = v1.13.2-rc1
+	branch = v2.0.0-beta3

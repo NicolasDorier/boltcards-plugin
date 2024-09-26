@@ -75,7 +75,7 @@ public class BoltcardPluginTests : UnitTestBase
         }
     }
 
-    [Fact]
+    [Fact(Timeout = 60_000)]
     public async Task CanTopUp()
     {
         using var s = this.CreateSeleniumTester();
@@ -89,8 +89,8 @@ public class BoltcardPluginTests : UnitTestBase
 
         foreach (var input in new[]
         {
-           (Currency: "SATS", Amount: "1000", TopUpAmount: 123456, ExpectedAmount: 123m),
-           (Currency: "BTC", Amount: "1", TopUpAmount: 789000, ExpectedAmount: 0.00000789m)
+           (Currency: "SATS", Amount: "1000", TopUpAmount: 123456, ExpectedAmount: 123m, ExpectedPayoutAmount: 123m),
+           (Currency: "BTC", Amount: "1", TopUpAmount: 789000, ExpectedAmount: 0.00000789m, ExpectedPayoutAmount: 0.00000789m)
         })
         {
             TestLogs.LogInformation($"Let's create a factory of {input.Amount} {input.Currency}");
@@ -161,10 +161,10 @@ public class BoltcardPluginTests : UnitTestBase
 
                 var payout = Assert.Single(payouts);
                 // The payment method amount is in sats, so msat are truncated
-                Assert.Equal(-input.ExpectedAmount, payout.Amount);
+                Assert.Equal(-input.ExpectedAmount, payout.OriginalAmount);
 
                 // The PaymentMethodAmount is null even outside topups, probably a bug in btcpay
-                //Assert.Equal(-input.ExpectedPayoutMethodAmount, payout.PaymentMethodAmount);
+                Assert.Equal(-input.ExpectedPayoutAmount, payout.PayoutAmount);
             }
         }
         //s.Driver.TakeScreenshot().SaveAsFile("C:\\Users\\NicolasDorier\\Downloads\\chromedriver-win64\\chromedriver-win64\\1.png");

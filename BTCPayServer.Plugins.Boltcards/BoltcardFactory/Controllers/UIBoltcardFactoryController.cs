@@ -34,6 +34,8 @@ using BTCPayServer.Plugins.BoltcardFactory.ViewModels;
 using BTCPayServer.Controllers.Greenfield;
 using BTCPayServer.Models;
 using Microsoft.Extensions.Logging;
+using BTCPayServer.Payouts;
+using System.Collections;
 
 namespace BTCPayServer.Plugins.BoltcardFactory.Controllers
 {
@@ -41,7 +43,7 @@ namespace BTCPayServer.Plugins.BoltcardFactory.Controllers
     [Route("apps")]
     public class UIBoltcardFactoryController : Controller
     {
-        private readonly IEnumerable<IPayoutHandler> _payoutHandlers;
+        private readonly PayoutMethodHandlerDictionary _payoutHandlers;
         private readonly CurrencyNameTable _currencies;
         private readonly AppService _appService;
         private readonly StoreRepository _storeRepository;
@@ -49,7 +51,7 @@ namespace BTCPayServer.Plugins.BoltcardFactory.Controllers
         private readonly IAuthorizationService _authorizationService;
 
         public UIBoltcardFactoryController(
-            IEnumerable<IPayoutHandler> payoutHandlers,
+            PayoutMethodHandlerDictionary payoutHandlers,
             CurrencyNameTable currencies,
             AppService appService,
             StoreRepository storeRepository,
@@ -67,13 +69,13 @@ namespace BTCPayServer.Plugins.BoltcardFactory.Controllers
         private AppData GetCurrentApp() => HttpContext.GetAppData();
         [Authorize(Policy = Policies.CanModifyStoreSettings, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
         [HttpGet("{appId}/settings/boltcardfactory")]
-        public async Task<IActionResult> UpdateBoltcardFactory(string appId)
+        public IActionResult UpdateBoltcardFactory(string appId)
         {
             if (CurrentStore is null || GetCurrentApp() is null)
                 return NotFound();
 
-            var paymentMethods = await _payoutHandlers.GetSupportedPaymentMethods(CurrentStore);
-            if (!paymentMethods.Any())
+            var payoutMethods = _payoutHandlers.GetSupportedPayoutMethods(CurrentStore);
+            if (!payoutMethods.Any())
             {
                 TempData.SetStatusMessageModel(new StatusMessageModel
                 {
@@ -84,10 +86,10 @@ namespace BTCPayServer.Plugins.BoltcardFactory.Controllers
             }
 
             var req = GetCurrentApp().GetSettings<CreatePullPaymentRequest>();
-            return base.View($"{BoltcardFactoryPlugin.ViewsDirectory}/UpdateBoltcardFactory.cshtml", CreateViewModel(paymentMethods, req));
+            return base.View($"{BoltcardFactoryPlugin.ViewsDirectory}/UpdateBoltcardFactory.cshtml", CreateViewModel(payoutMethods, req));
         }
 
-        private NewPullPaymentModel CreateViewModel(List<PaymentMethodId> paymentMethods, CreatePullPaymentRequest req)
+        private NewPullPaymentModel CreateViewModel(IEnumerable<PayoutMethodId> payoutMethodIds, CreatePullPaymentRequest req)
         {
             return new NewPullPaymentModel
             {
@@ -96,10 +98,10 @@ namespace BTCPayServer.Plugins.BoltcardFactory.Controllers
                 Amount = req.Amount,
                 AutoApproveClaims = req.AutoApproveClaims,
                 Description = req.Description,
-                PaymentMethods = req.PaymentMethods,
+                PayoutMethods = req.PayoutMethods,
                 BOLT11Expiration = req.BOLT11Expiration?.TotalDays is double v ? (long)v : 30,
-                PaymentMethodItems =
-                                paymentMethods.Select(id => new SelectListItem(id.ToPrettyString(), id.ToString(), req.PaymentMethods?.Contains(id.ToString()) is not false))
+                PayoutMethodsItem =
+                                payoutMethodIds.Select(id => new SelectListItem(id.ToString(), id.ToString(), req.PayoutMethods?.Contains(id.ToString()) is not false))
             };
         }
 
@@ -110,20 +112,20 @@ namespace BTCPayServer.Plugins.BoltcardFactory.Controllers
             if (CurrentStore is null)
                 return NotFound();
             var storeId = CurrentStore.Id;
-            var paymentMethodOptions = await _payoutHandlers.GetSupportedPaymentMethods(CurrentStore);
-            model.PaymentMethodItems =
-                paymentMethodOptions.Select(id => new SelectListItem(id.ToPrettyString(), id.ToString(), true));
+            var paymentMethodOptions = _payoutHandlers.GetSupportedPayoutMethods(CurrentStore);
+            model.PayoutMethodsItem =
+                paymentMethodOptions.Select(id => new SelectListItem(id.ToString(), id.ToString(), true));
             model.Name ??= string.Empty;
             model.Currency = model.Currency?.ToUpperInvariant()?.Trim() ?? String.Empty;
-            model.PaymentMethods ??= new List<string>();
+            model.PayoutMethods ??= new List<string>();
 
-            if (!model.PaymentMethods.Any())
+            if (!model.PayoutMethods.Any())
             {
                 // Since we assign all payment methods to be selected by default above we need to update 
                 // them here to reflect user's selection so that they can correct their mistake
-                model.PaymentMethodItems =
-                    paymentMethodOptions.Select(id => new SelectListItem(id.ToPrettyString(), id.ToString(), false));
-                ModelState.AddModelError(nameof(model.PaymentMethods), "You need at least one payment method");
+                model.PayoutMethodsItem =
+                    paymentMethodOptions.Select(id => new SelectListItem(id.ToString(), id.ToString(), false));
+                ModelState.AddModelError(nameof(model.PayoutMethods), "You need at least one payment method");
             }
             if (_currencyNameTable.GetCurrencyData(model.Currency, false) is null)
             {
@@ -138,7 +140,7 @@ namespace BTCPayServer.Plugins.BoltcardFactory.Controllers
                 ModelState.AddModelError(nameof(model.Name), "The name should be maximum 50 characters.");
             }
 
-            var selectedPaymentMethodIds = model.PaymentMethods.Select(PaymentMethodId.Parse).ToArray();
+            var selectedPaymentMethodIds = model.PayoutMethods.Select(PaymentMethodId.Parse).ToArray();
             if (!selectedPaymentMethodIds.All(id => selectedPaymentMethodIds.Contains(id)))
             {
                 ModelState.AddModelError(nameof(model.Name), "Not all payment methods are supported");
@@ -165,19 +167,19 @@ namespace BTCPayServer.Plugins.BoltcardFactory.Controllers
                 Amount = model.Amount,
                 AutoApproveClaims = model.AutoApproveClaims,
                 BOLT11Expiration = TimeSpan.FromDays(model.BOLT11Expiration),
-                PaymentMethods = model.PaymentMethods.ToArray()
+                PayoutMethods = model.PayoutMethods.ToArray()
             };
             var app = GetCurrentApp();
             app.Name = model.Name;
             app.SetSettings(req);
             await _appService.UpdateOrCreateApp(app);
-            var paymentMethods = await _payoutHandlers.GetSupportedPaymentMethods(CurrentStore);
+            var payoutMethods = _payoutHandlers.GetSupportedPayoutMethods(CurrentStore);
             this.TempData.SetStatusMessageModel(new StatusMessageModel()
             {
                 Message = "Pull payment request created",
                 Severity = StatusMessageModel.StatusSeverity.Success
             });
-            return View($"{BoltcardFactoryPlugin.ViewsDirectory}/UpdateBoltcardFactory.cshtml", CreateViewModel(paymentMethods, req));
+            return View($"{BoltcardFactoryPlugin.ViewsDirectory}/UpdateBoltcardFactory.cshtml", CreateViewModel(payoutMethods, req));
         }
 
         private async Task<bool> CanApproveClaim()

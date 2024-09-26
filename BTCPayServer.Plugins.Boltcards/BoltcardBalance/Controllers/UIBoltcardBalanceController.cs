@@ -115,7 +115,7 @@ namespace BTCPayServer.Plugins.BoltcardBalance.Controllers
 				return Ok(payRequest);
 
             var cryptoCode = "BTC";
-			var currency = pp.GetBlob().Currency;
+			var currency = pp.Currency;
             if (currency is not ("SATS" or "BTC"))
 				return BadRequest(new LNUrlStatusResponse { Status = "ERROR", Reason = $"Invalid currency for the pull payment (only {cryptoCode} and SATS are supported)" });
 
@@ -157,7 +157,8 @@ namespace BTCPayServer.Plugins.BoltcardBalance.Controllers
                 return NotFound();
             var blob = pp.GetBlob();
 
-            var payouts = (await ctx.Payouts.GetPayoutInPeriod(pp)
+            var payouts = (await ctx.Payouts
+                    .Where(p => p.PullPaymentDataId == pp.Id)
                     .OrderByDescending(o => o.Date)
                     .ToListAsync())
                     .Select(o => new
@@ -167,14 +168,14 @@ namespace BTCPayServer.Plugins.BoltcardBalance.Controllers
                     });
 
 
-            var totalPaid = payouts.Where(p => p.Entity.State != PayoutState.Cancelled).Select(p => p.Blob.Amount).Sum();
+            var totalPaid = payouts.Where(p => p.Entity.State != PayoutState.Cancelled && p.Entity.Amount is not null).Select(p => p.Entity.Amount.Value).Sum();
 
             var bech32LNUrl = new Uri(Url.Action(nameof(GetTopupBoltcardRequest), "UIBoltcardBalance", new { p }, Request.Scheme), UriKind.Absolute);
             bech32LNUrl = LNURL.LNURL.EncodeUri(bech32LNUrl, "payRequest", true);
             var vm = new BalanceViewModel()
             {
-                Currency = blob.Currency,
-                AmountDue = blob.Limit - totalPaid,
+                Currency = pp.Currency,
+                AmountDue = pp.Limit - totalPaid,
                 LNUrlBech32 = bech32LNUrl.AbsoluteUri,
                 LNUrlPay = Url.Action(nameof(GetTopupBoltcardRequest), "UIBoltcardBalance", new { p }, "lnurlp"),
                 BoltcardKeysResetLink = $"boltcard://reset?url={GetBoltcardDeeplinkUrl(pp.Id, OnExistingBehavior.KeepVersion)}",
@@ -196,14 +197,14 @@ namespace BTCPayServer.Plugins.BoltcardBalance.Controllers
                 vm.Transactions.Add(new BalanceViewModel.Transaction()
                 {
                     Date = payout.Entity.Date,
-                    Balance = -payout.Blob.Amount,
+                    Balance = -payout.Entity.Amount.Value,
                     Status = payout.Entity.State
                 });
             }
             vm.Transactions.Add(new BalanceViewModel.Transaction()
             {
                 Date = pp.StartDate,
-                Balance = blob.Limit,
+                Balance = pp.Limit,
                 Status = PayoutState.Completed
             });
             vm.ViewMode = view?.Equals("Reset", StringComparison.OrdinalIgnoreCase) is true ? Mode.Reset : Mode.TopUp;

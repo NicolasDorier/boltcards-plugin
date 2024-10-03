@@ -24,8 +24,6 @@ public class BoltcardPluginTests : UnitTestBase
 {
     public BoltcardPluginTests(ITestOutputHelper helper) : base(helper)
     {
-        var testDir = new DirectoryInfo(Path.Combine(Directory.GetCurrentDirectory(), "..", "..", "..", "..", "btcpayserver", "BTCPayServer.Tests", "bin", "Debug", "net8.0")).FullName;
-        Directory.SetCurrentDirectory(testDir);
     }
 
     class BoltcardFactoryClient

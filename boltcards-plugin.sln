@@ -1,0 +1,67 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BTCPayServer.Plugins.Boltcards", "BTCPayServer.Plugins.Boltcards\BTCPayServer.Plugins.Boltcards.csproj", "{A40CC9E5-F6B4-42F8-AB57-3864A50BAC67}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BTCPayServer.Plugins.Boltcards.Tests", "BTCPayServer.Plugins.Boltcards.Tests\BTCPayServer.Plugins.Boltcards.Tests.csproj", "{12030671-5446-4B2C-8242-F15BD43BFDBB}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "btcpayserver", "btcpayserver", "{1C94A1C6-2969-48AD-A0D9-32E08EEB9C56}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BTCPayServer", "btcpayserver\BTCPayServer\BTCPayServer.csproj", "{951F7BA8-488E-4F9C-9529-1419793D46FC}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BTCPayServer.Abstractions", "btcpayserver\BTCPayServer.Abstractions\BTCPayServer.Abstractions.csproj", "{EBF27857-FBB9-4990-9B08-89579FE2F33E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BTCPayServer.Client", "btcpayserver\BTCPayServer.Client\BTCPayServer.Client.csproj", "{0089F0EC-4F71-41A4-8BE9-1C15E5A9C146}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BTCPayServer.Data", "btcpayserver\BTCPayServer.Data\BTCPayServer.Data.csproj", "{EEAD2C68-E305-4D48-97FD-C7761E2BFB6C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BTCPayServer.Tests", "btcpayserver\BTCPayServer.Tests\BTCPayServer.Tests.csproj", "{FB40DB9B-D283-47C2-9069-41121A309617}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{A40CC9E5-F6B4-42F8-AB57-3864A50BAC67}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A40CC9E5-F6B4-42F8-AB57-3864A50BAC67}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A40CC9E5-F6B4-42F8-AB57-3864A50BAC67}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A40CC9E5-F6B4-42F8-AB57-3864A50BAC67}.Release|Any CPU.Build.0 = Release|Any CPU
+		{12030671-5446-4B2C-8242-F15BD43BFDBB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{12030671-5446-4B2C-8242-F15BD43BFDBB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{12030671-5446-4B2C-8242-F15BD43BFDBB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{12030671-5446-4B2C-8242-F15BD43BFDBB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{951F7BA8-488E-4F9C-9529-1419793D46FC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{951F7BA8-488E-4F9C-9529-1419793D46FC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{951F7BA8-488E-4F9C-9529-1419793D46FC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{951F7BA8-488E-4F9C-9529-1419793D46FC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EBF27857-FBB9-4990-9B08-89579FE2F33E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EBF27857-FBB9-4990-9B08-89579FE2F33E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EBF27857-FBB9-4990-9B08-89579FE2F33E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EBF27857-FBB9-4990-9B08-89579FE2F33E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0089F0EC-4F71-41A4-8BE9-1C15E5A9C146}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0089F0EC-4F71-41A4-8BE9-1C15E5A9C146}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0089F0EC-4F71-41A4-8BE9-1C15E5A9C146}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0089F0EC-4F71-41A4-8BE9-1C15E5A9C146}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EEAD2C68-E305-4D48-97FD-C7761E2BFB6C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EEAD2C68-E305-4D48-97FD-C7761E2BFB6C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EEAD2C68-E305-4D48-97FD-C7761E2BFB6C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EEAD2C68-E305-4D48-97FD-C7761E2BFB6C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FB40DB9B-D283-47C2-9069-41121A309617}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FB40DB9B-D283-47C2-9069-41121A309617}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FB40DB9B-D283-47C2-9069-41121A309617}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FB40DB9B-D283-47C2-9069-41121A309617}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{951F7BA8-488E-4F9C-9529-1419793D46FC} = {1C94A1C6-2969-48AD-A0D9-32E08EEB9C56}
+		{EBF27857-FBB9-4990-9B08-89579FE2F33E} = {1C94A1C6-2969-48AD-A0D9-32E08EEB9C56}
+		{0089F0EC-4F71-41A4-8BE9-1C15E5A9C146} = {1C94A1C6-2969-48AD-A0D9-32E08EEB9C56}
+		{EEAD2C68-E305-4D48-97FD-C7761E2BFB6C} = {1C94A1C6-2969-48AD-A0D9-32E08EEB9C56}
+		{FB40DB9B-D283-47C2-9069-41121A309617} = {1C94A1C6-2969-48AD-A0D9-32E08EEB9C56}
+	EndGlobalSection
+EndGlobal

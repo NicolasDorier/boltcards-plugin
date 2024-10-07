@@ -23,9 +23,9 @@ namespace BTCPayServer.Plugins.Boltcards
 		public override void Execute(IServiceCollection services)
 		{
 			services.AddHostedService<TopupRequestHostedService>();
-            services.AddSingleton<IUIExtension>(new UIExtension($"{BoltcardBalance.BoltcardBalancePlugin.ViewsDirectory}/NavExtension.cshtml", "header-nav"));
+            services.AddUIExtension("header-nav", $"{BoltcardBalance.BoltcardBalancePlugin.ViewsDirectory}/NavExtension.cshtml");
 			services.AddSingleton<AppBaseType, BoltcardFactory.BoltcardFactoryPlugin.BoltcardFactoryAppType>();
-			services.AddSingleton<IUIExtension>(new UIExtension($"{BoltcardFactory.BoltcardFactoryPlugin.ViewsDirectory}/NavExtension.cshtml", "header-nav"));
+			services.AddUIExtension("header-nav", $"{BoltcardFactory.BoltcardFactoryPlugin.ViewsDirectory}/NavExtension.cshtml");
 		}
 	}
 }

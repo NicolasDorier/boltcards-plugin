@@ -19,7 +19,7 @@
 	var appType = AppService.GetAppType(BoltcardFactoryPlugin.AppType)!;
     <li class="nav-item" permission="@Policies.CanModifyStoreSettings">
         <a asp-area="" asp-controller="UIApps" asp-action="CreateApp" asp-route-storeId="@store.Id" asp-route-appType="@appType.Type" class="nav-link @ViewData.ActivePageClass(AppsNavPages.Create.ToString(), appType.Type)" id="@($"StoreNav-Create{appType.Type}")">
-            <vc:icon symbol="pointofsale" />
+            <vc:icon symbol="nav-pointofsale" />
             <span>@appType.Description</span>
         </a>
     </li>

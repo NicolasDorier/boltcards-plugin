@@ -197,7 +197,7 @@ namespace BTCPayServer.Plugins.BoltcardBalance.Controllers
                 vm.Transactions.Add(new BalanceViewModel.Transaction()
                 {
                     Date = payout.Entity.Date,
-                    Balance = -payout.Entity.Amount.Value,
+                    Balance = -payout.Entity.OriginalAmount,
                     Status = payout.Entity.State
                 });
             }

@@ -3,11 +3,27 @@
 @using BTCPayServer.Client
 @using BTCPayServer.Views.Stores
 @using Microsoft.AspNetCore.Routing
+@using BTCPayServer;
+@using BTCPayServer.Data
+@using BTCPayServer.PayoutProcessors.Lightning
+@using BTCPayServer.Payouts;
+
+@inject BTCPayServer.PayoutProcessors.PayoutProcessorService PayoutProcessorService
+
 @model BTCPayServer.Models.WalletViewModels.NewPullPaymentModel
 @{
 	ViewData["Title"] = "Update Boltcard Factory";
 	Layout = "/Views/Shared/_Layout.cshtml";
     var appId = @Context.GetRouteValue("appId");
+
+    var storeData = this.Context.GetStoreData();
+    var processor = (await PayoutProcessorService.GetProcessors(new()
+            {
+                PayoutMethods = [PayoutMethodId.Parse("BTC-LN")],
+                Processors = [LightningAutomatedPayoutSenderFactory.ProcessorName],
+                Stores = [storeData.Id]
+            })).FirstOrDefault();
+    var showWarning = processor?.HasTypedBlob<LightningAutomatedPayoutBlob>().GetBlob()?.ProcessNewPayoutsInstantly is not true;
 }
 
 @section PageHeadContent {
@@ -32,7 +48,13 @@
 		</div>
     </div>
 
-    <partial name="@(BTCPayServer.Plugins.BoltcardBalance.BoltcardBalancePlugin.ViewsDirectory)/StoreSettingsWarning.cshtml" />
+    @if (showWarning)
+    {
+        <div class="alert alert-warning text-break" role="alert" v-pre>
+            <p style="white-space: pre-wrap;">You need to activate the lightning automated payment processor and allow it to approve payouts instantly.<b>Process approved payouts instantly</b>.</p>
+            <p style="white-space: pre-wrap;">Enable it by <a id="SetupLightningProcessor" asp-controller="UIBoltcardFactory" asp-action="SetupLightningProcessor" asp-route-appId="@Context.GetRouteValue("appId")">clicking here</a>.</p>
+        </div>
+    }
     <partial name="_StatusMessage"/>
 
     <div class="row">

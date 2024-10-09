@@ -100,6 +100,11 @@ public class BoltcardPluginTests : UnitTestBase
                 new SelectElement(s.Driver.FindElement(By.Id("Currency"))).SelectByText(input.Currency);
                 s.Driver.FindElement(By.Id("Save")).Click();
                 Assert.Contains("Pull payment request created", s.FindAlertMessage().Text);
+                if (s.Driver.PageSource.Contains("#SetupLightningProcessor"))
+                {
+                    s.Driver.FindElement(By.Id("SetupLightningProcessor")).Click();
+                    s.Driver.FindElement(By.Id("Save")).Click();
+                }
                 s.Driver.FindElement(By.Id("ViewApp")).Click();
                 // Somehow stupid selenium doesn't like click on ViewApp, it just ignore it
                 s.GoToUrl($"/apps/{appId}/boltcardfactory");

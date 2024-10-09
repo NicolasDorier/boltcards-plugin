@@ -36,6 +36,8 @@ using BTCPayServer.Models;
 using Microsoft.Extensions.Logging;
 using BTCPayServer.Payouts;
 using System.Collections;
+using BTCPayServer.PayoutProcessors;
+using BTCPayServer.PayoutProcessors.Lightning;
 
 namespace BTCPayServer.Plugins.BoltcardFactory.Controllers
 {
@@ -48,6 +50,7 @@ namespace BTCPayServer.Plugins.BoltcardFactory.Controllers
         private readonly AppService _appService;
         private readonly StoreRepository _storeRepository;
         private readonly CurrencyNameTable _currencyNameTable;
+        private readonly BTCPayServerClient btcpayClient;
         private readonly IAuthorizationService _authorizationService;
 
         public UIBoltcardFactoryController(
@@ -56,6 +59,7 @@ namespace BTCPayServer.Plugins.BoltcardFactory.Controllers
             AppService appService,
             StoreRepository storeRepository,
             CurrencyNameTable currencyNameTable,
+            BTCPayServerClient btcpayClient,
             IAuthorizationService authorizationService)
         {
             _payoutHandlers = payoutHandlers;
@@ -63,6 +67,7 @@ namespace BTCPayServer.Plugins.BoltcardFactory.Controllers
             _appService = appService;
             _storeRepository = storeRepository;
             _currencyNameTable = currencyNameTable;
+            this.btcpayClient = btcpayClient;
             _authorizationService = authorizationService;
         }
         public Data.StoreData CurrentStore => HttpContext.GetStoreData();
@@ -103,6 +108,25 @@ namespace BTCPayServer.Plugins.BoltcardFactory.Controllers
                 PayoutMethodsItem =
                                 payoutMethodIds.Select(id => new SelectListItem(id.ToString(), id.ToString(), req.PayoutMethods?.Contains(id.ToString()) is not false))
             };
+        }
+
+        [Authorize(Policy = Policies.CanModifyStoreSettings, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
+        [HttpGet("{appId}/settings/boltcardfactory/setup")]
+        public async Task<IActionResult> SetupLightningProcessor(string appId)
+        {
+            var pmi = PayoutMethodId.Parse("BTC-LN").ToString();
+            var processors = await btcpayClient.GetStoreLightningAutomatedPayoutProcessors(this.CurrentStore.Id);
+            var processor = processors.FirstOrDefault(p => p.PayoutMethodId == pmi);
+            if (processor is null)
+                processor = new() { IntervalSeconds = TimeSpan.FromMinutes(AutomatedPayoutConstants.DefaultIntervalMinutes) };
+            processor.ProcessNewPayoutsInstantly = true;
+            await btcpayClient.UpdateStoreLightningAutomatedPayoutProcessors(this.CurrentStore.Id, pmi, processor);
+            this.TempData.SetStatusMessageModel(new StatusMessageModel()
+            {
+                Severity = StatusMessageModel.StatusSeverity.Success,
+                Message = "The Lightning payout processor, with instant processing of approved payouts, has been set up."
+            });
+            return RedirectToAction(nameof(this.UpdateBoltcardFactory), new { appId });
         }
 
         [Authorize(Policy = Policies.CanModifyStoreSettings, AuthenticationSchemes = AuthenticationSchemes.Cookie)]

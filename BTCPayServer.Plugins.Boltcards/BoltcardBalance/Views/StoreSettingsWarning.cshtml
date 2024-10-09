@@ -1,0 +1,23 @@
+@using BTCPayServer;
+@using BTCPayServer.Data
+@using BTCPayServer.PayoutProcessors.Lightning
+@using BTCPayServer.Payouts;
+@inject BTCPayServer.PayoutProcessors.PayoutProcessorService PayoutProcessorService
+
+@{
+	var storeData = this.Context.GetStoreData();
+	var processor = (await PayoutProcessorService.GetProcessors(new()
+	{
+		PayoutMethods = [PayoutMethodId.Parse("BTC-LN")],
+		Processors = [LightningAutomatedPayoutSenderFactory.ProcessorName],
+		Stores = [storeData.Id]
+	})).FirstOrDefault();
+	var showWarning = processor?.HasTypedBlob<LightningAutomatedPayoutBlob>().GetBlob()?.ProcessNewPayoutsInstantly is not true;
+}
+
+@if (showWarning)
+{
+	<div class="alert alert-warning text-break" role="alert" v-pre>
+		<span style="white-space: pre-wrap;">Please, activate the <a asp-action="ConfigureStorePayoutProcessors" asp-controller="UIPayoutProcessors" asp-route-storeId="@storeData.Id">lightning automated payment processor</a> and check the box <b>Process approved payouts instantly</b>.</span>
+	</div>
+}

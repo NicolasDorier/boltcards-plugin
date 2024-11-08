@@ -161,6 +161,7 @@ namespace BTCPayServer.Plugins.BoltcardBalance.Controllers
                     .Where(p => p.PullPaymentDataId == pp.Id)
                     .OrderByDescending(o => o.Date)
                     .ToListAsync())
+                    .Where(o => o.State != PayoutState.Cancelled)
                     .Select(o => new
                     {
                         Entity = o,
@@ -168,7 +169,7 @@ namespace BTCPayServer.Plugins.BoltcardBalance.Controllers
                     });
 
 
-            var totalPaid = payouts.Where(p => p.Entity.State != PayoutState.Cancelled).Select(p => p.Entity.OriginalAmount).Sum();
+            var totalPaid = payouts.Select(p => p.Entity.OriginalAmount).Sum();
 
             var bech32LNUrl = new Uri(Url.Action(nameof(GetTopupBoltcardRequest), "UIBoltcardBalance", new { p }, Request.Scheme), UriKind.Absolute);
             bech32LNUrl = LNURL.LNURL.EncodeUri(bech32LNUrl, "payRequest", true);

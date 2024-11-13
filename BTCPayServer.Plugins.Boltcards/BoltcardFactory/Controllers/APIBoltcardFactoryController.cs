@@ -53,6 +53,7 @@ namespace BTCPayServer.Plugins.BoltcardFactory.Controllers
             if (app is null)
                 return NotFound();
             var issuerKey = await _settingsRepository.GetIssuerKey(_env);
+            logs.PayServer.LogInformation("IssuerKey: " + Encoders.Hex.EncodeData(issuerKey.AESKey.ToBytes()));
             BoltcardPICCData? picc = null;
             // LNURLW is used by deeplinks
             if (request?.LNURLW is not null)
@@ -68,6 +69,7 @@ namespace BTCPayServer.Plugins.BoltcardFactory.Controllers
                     ModelState.AddModelError(nameof(request.LNURLW), "The LNURLW should contains a 'p=' parameter");
                     return this.CreateValidationError(ModelState);
                 }
+                logs.PayServer.LogInformation("p: " + p);
                 if (issuerKey.TryDecrypt(p) is not BoltcardPICCData o)
                 {
                     ModelState.AddModelError(nameof(request.LNURLW), "The LNURLW 'p=' parameter cannot be decrypted");
@@ -120,10 +122,12 @@ namespace BTCPayServer.Plugins.BoltcardFactory.Controllers
                     return this.CreateValidationError(ModelState);
                 }
                 version = registration.Version;
+                logs.PayServer.LogInformation("UID: " + Encoders.Hex.EncodeData(request!.UID));
+                logs.PayServer.LogInformation("Version: " + version.ToString());
+                logs.PayServer.LogInformation("PPID: " + ppId);
                 int retryCount = 0;
                 retry:
                 keys = issuerKey.CreatePullPaymentCardKey(request!.UID, version, ppId).DeriveBoltcardKeys(issuerKey);
-                
                 // The server version may be higher than the card.
                 // If that is the case, let's try a few versions until we find the right one
                 // by checking c.

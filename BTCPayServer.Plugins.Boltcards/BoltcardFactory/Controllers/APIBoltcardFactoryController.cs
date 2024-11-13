@@ -129,7 +129,7 @@ namespace BTCPayServer.Plugins.BoltcardFactory.Controllers
                     {
                         retryCount++;
                         version--;
-                        if (version < 0 && retryCount > 5)
+                        if (version < 0 || retryCount > 5)
                         {
                             ModelState.AddModelError(nameof(request.UID), "Unable to get keys of this card, it might be caused by a version mismatch");
                             return this.CreateValidationError(ModelState);

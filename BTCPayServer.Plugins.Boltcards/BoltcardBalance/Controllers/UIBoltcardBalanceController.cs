@@ -79,7 +79,7 @@ namespace BTCPayServer.Plugins.BoltcardBalance.Controllers
             if (boltData?.Uid is null)
                 return NotFound();
             var registration = await _dbContextFactory.GetBoltcardRegistration(issuerKey, boltData, true);
-            if (registration is null)
+            if (registration?.PullPaymentId is null)
                 return NotFound();
             return await GetBalanceView(registration, p, issuerKey, view);
         }
@@ -95,6 +95,8 @@ namespace BTCPayServer.Plugins.BoltcardBalance.Controllers
 				return BadRequest(new LNUrlStatusResponse { Status = "ERROR", Reason = "Invalid PICCData" });
 			piccData = new BoltcardPICCData(piccData.Uid, int.MaxValue - 10); // do not check the counter
 			var registration = await _dbContextFactory.GetBoltcardRegistration(issuerKey, piccData, false);
+			if (registration?.PullPaymentId is null)
+				return BadRequest(new LNUrlStatusResponse { Status = "ERROR", Reason = "This card isn't linked to this server anymore" });
 			var pp = await ppService.GetPullPayment(registration!.PullPaymentId, false);
 			var store = await storeRepository.FindStore(pp.StoreId);
 

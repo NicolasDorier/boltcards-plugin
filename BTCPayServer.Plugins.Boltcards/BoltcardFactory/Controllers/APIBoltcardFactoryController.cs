@@ -1,5 +1,6 @@
 #nullable enable
 using System;
+using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using BTCPayServer.Abstractions.Extensions;
@@ -14,6 +15,7 @@ using BTCPayServer.Services.Apps;
 using LNURL;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using NBitcoin.DataEncoders;
 
@@ -122,10 +124,8 @@ namespace BTCPayServer.Plugins.BoltcardFactory.Controllers
                     return this.CreateValidationError(ModelState);
                 }
                 version = registration.Version;
-                logs.PayServer.LogInformation("UID: " + Encoders.Hex.EncodeData(request!.UID));
-                logs.PayServer.LogInformation("Version: " + version.ToString());
-                logs.PayServer.LogInformation("PPID: " + ppId);
                 int retryCount = 0;
+                var ppids = await GetPullPaymentIds(_dbContextFactory);
                 retry:
                 keys = issuerKey.CreatePullPaymentCardKey(request!.UID, version, ppId).DeriveBoltcardKeys(issuerKey);
                 // The server version may be higher than the card.
@@ -135,15 +135,11 @@ namespace BTCPayServer.Plugins.BoltcardFactory.Controllers
                     ExtractC(lnurlw) is string c &&
                     picc is not null)
                 {
-                    logs.PayServer.LogInformation("lnurlw: " + lnurlw);
-                    logs.PayServer.LogInformation("c: " + c);
-                    logs.PayServer.LogInformation("picc: " + picc.Counter);
-                    logs.PayServer.LogInformation("uid: " + Encoders.Hex.EncodeData(picc.Uid));
                     if (!keys.AuthenticationKey.CheckSunMac(c, picc))
                     {
                         retryCount++;
-                        version--;
-                        if (version < 0 || retryCount > 5)
+                        ppId = ppids[retryCount];
+                        if (version < 0 || retryCount >= ppids.Length)
                         {
                             ModelState.AddModelError(nameof(request.UID), "Unable to get keys of this card, it might be caused by a version mismatch");
                             return this.CreateValidationError(ModelState);
@@ -169,6 +165,12 @@ namespace BTCPayServer.Plugins.BoltcardFactory.Controllers
             };
 
             return Ok(resp);
+        }
+
+        private async Task<string[]> GetPullPaymentIds(ApplicationDbContextFactory dbContextFactory)
+        {
+            using var ctx = dbContextFactory.CreateContext();
+            return await ctx.PullPayments.OrderByDescending(p => p.StartDate).Select(p => p.Id).Take(60).ToArrayAsync();
         }
 
         private string? Extract(string? url, string param, int size)

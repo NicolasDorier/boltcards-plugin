@@ -7,6 +7,7 @@ using BTCPayServer.Client.Models;
 using BTCPayServer.Controllers;
 using BTCPayServer.Data;
 using BTCPayServer.HostedServices;
+using BTCPayServer.Logging;
 using BTCPayServer.NTag424;
 using BTCPayServer.Services;
 using BTCPayServer.Services.Apps;
@@ -27,19 +28,22 @@ namespace BTCPayServer.Plugins.BoltcardFactory.Controllers
         private readonly BTCPayServerEnvironment _env;
         private readonly ApplicationDbContextFactory _dbContextFactory;
         private readonly PullPaymentHostedService _ppService;
+        private readonly Logs logs;
 
         public APIBoltcardFactoryController(
             AppService appService,
             SettingsRepository settingsRepository,
             BTCPayServerEnvironment env,
             ApplicationDbContextFactory dbContextFactory,
-            PullPaymentHostedService ppService)
+            PullPaymentHostedService ppService,
+            Logs logs)
         {
             _appService = appService;
             _settingsRepository = settingsRepository;
             _env = env;
             _dbContextFactory = dbContextFactory;
             _ppService = ppService;
+            this.logs = logs;
         }
         [HttpPost("{appId}/boltcards")]
         [AllowAnonymous]
@@ -105,7 +109,9 @@ namespace BTCPayServer.Plugins.BoltcardFactory.Controllers
                     ModelState.AddModelError(nameof(request.UID), "This card isn't registered");
                     return this.CreateValidationError(ModelState);
                 }
-
+                logs.PayServer.LogInformation("Registration Version: " + registration.Version);
+                logs.PayServer.LogInformation("Registration Counter: " + registration.Counter);
+                logs.PayServer.LogInformation("Registration Id: " + registration.Id);
                 var ppId = registration.PullPaymentId;
                 var pp = await _ppService.GetPullPayment(ppId, false);
                 if (pp.StoreId != app.StoreDataId)
@@ -117,7 +123,7 @@ namespace BTCPayServer.Plugins.BoltcardFactory.Controllers
                 int retryCount = 0;
                 retry:
                 keys = issuerKey.CreatePullPaymentCardKey(request!.UID, version, ppId).DeriveBoltcardKeys(issuerKey);
-
+                
                 // The server version may be higher than the card.
                 // If that is the case, let's try a few versions until we find the right one
                 // by checking c.
@@ -125,6 +131,10 @@ namespace BTCPayServer.Plugins.BoltcardFactory.Controllers
                     ExtractC(lnurlw) is string c &&
                     picc is not null)
                 {
+                    logs.PayServer.LogInformation("lnurlw: " + lnurlw);
+                    logs.PayServer.LogInformation("c: " + c);
+                    logs.PayServer.LogInformation("picc: " + picc.Counter);
+                    logs.PayServer.LogInformation("uid: " + Encoders.Hex.EncodeData(picc.Uid));
                     if (!keys.AuthenticationKey.CheckSunMac(c, picc))
                     {
                         retryCount++;

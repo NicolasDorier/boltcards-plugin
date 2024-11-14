@@ -7,7 +7,7 @@
   <PropertyGroup>
     <Product>Boltcards Extension</Product>
     <Description>Program a batch of Boltcards through the Boltcards factory. Then let the users consult their balance, reset, or top-up their cards.</Description>
-    <Version>1.1.9</Version>
+    <Version>1.1.10</Version>
 	<AssemblyName>BTCPayServer.Plugins.Boltcards</AssemblyName>
   </PropertyGroup>
 

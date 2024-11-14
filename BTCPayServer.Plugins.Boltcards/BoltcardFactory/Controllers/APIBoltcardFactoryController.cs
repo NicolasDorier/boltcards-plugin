@@ -89,7 +89,9 @@ namespace BTCPayServer.Plugins.BoltcardFactory.Controllers
 
             BoltcardKeys keys;
             int version;
-            if (request.OnExisting == OnExistingBehavior.UpdateVersion)
+            var registration = await _dbContextFactory.GetBoltcardRegistration(issuerKey, request.UID);
+            if (request.OnExisting is OnExistingBehavior.UpdateVersion ||
+                (request.OnExisting is null && registration?.PullPaymentId is null))
             {
                 var req = app.GetSettings<CreatePullPaymentRequest>();
                 var ppId = await _ppService.CreatePullPayment(app.StoreDataId, req);
@@ -99,7 +101,6 @@ namespace BTCPayServer.Plugins.BoltcardFactory.Controllers
             // If it's a reset, do not create a new pull payment
             else
             {
-                var registration = await _dbContextFactory.GetBoltcardRegistration(issuerKey, request.UID);
                 if (registration?.PullPaymentId is null)
                 {
                     ModelState.AddModelError(nameof(request.UID), "This card isn't registered");

@@ -10,6 +10,7 @@ using BTCPayServer.HostedServices;
 using BTCPayServer.NTag424;
 using BTCPayServer.Services;
 using BTCPayServer.Services.Apps;
+using BTCPayServer.Services.Stores;
 using LNURL;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -26,20 +27,23 @@ namespace BTCPayServer.Plugins.BoltcardFactory.Controllers
         private readonly SettingsRepository _settingsRepository;
         private readonly BTCPayServerEnvironment _env;
         private readonly ApplicationDbContextFactory _dbContextFactory;
-        private readonly PullPaymentHostedService _ppService;
+		private readonly StoreRepository _storeRepository;
+		private readonly PullPaymentHostedService _ppService;
 
         public APIBoltcardFactoryController(
             AppService appService,
             SettingsRepository settingsRepository,
             BTCPayServerEnvironment env,
             ApplicationDbContextFactory dbContextFactory,
-            PullPaymentHostedService ppService)
+			StoreRepository storeRepository,
+			PullPaymentHostedService ppService)
         {
             _appService = appService;
             _settingsRepository = settingsRepository;
             _env = env;
             _dbContextFactory = dbContextFactory;
-            _ppService = ppService;
+			_storeRepository = storeRepository;
+			_ppService = ppService;
         }
         [HttpPost("{appId}/boltcards")]
         [AllowAnonymous]
@@ -48,7 +52,10 @@ namespace BTCPayServer.Plugins.BoltcardFactory.Controllers
             var app = await _appService.GetApp(appId, BoltcardFactoryPlugin.AppType);
             if (app is null)
                 return NotFound();
-            var issuerKey = await _settingsRepository.GetIssuerKey(_env);
+            var store = await _storeRepository.FindStore(app.StoreDataId);
+            if (store is null)
+				return NotFound();
+			var issuerKey = await _settingsRepository.GetIssuerKey(_env);
             BoltcardPICCData? picc = null;
             // LNURLW is used by deeplinks
             if (request?.LNURLW is not null)
@@ -94,7 +101,7 @@ namespace BTCPayServer.Plugins.BoltcardFactory.Controllers
                 (request.OnExisting is null && registration?.PullPaymentId is null))
             {
                 var req = app.GetSettings<CreatePullPaymentRequest>();
-                var ppId = await _ppService.CreatePullPayment(app.StoreDataId, req);
+                var ppId = await _ppService.CreatePullPayment(store, req);
                 version = await _dbContextFactory.LinkBoltcardToPullPayment(ppId, issuerKey, request.UID, request.OnExisting);
                 keys = issuerKey.CreatePullPaymentCardKey(request.UID, version, ppId).DeriveBoltcardKeys(issuerKey);
             }

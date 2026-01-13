@@ -38,6 +38,7 @@ using BTCPayServer.Payouts;
 using System.Collections;
 using BTCPayServer.PayoutProcessors;
 using BTCPayServer.PayoutProcessors.Lightning;
+using Newtonsoft.Json.Linq;
 
 namespace BTCPayServer.Plugins.BoltcardFactory.Controllers
 {
@@ -46,28 +47,25 @@ namespace BTCPayServer.Plugins.BoltcardFactory.Controllers
     public class UIBoltcardFactoryController : Controller
     {
         private readonly PayoutMethodHandlerDictionary _payoutHandlers;
-        private readonly CurrencyNameTable _currencies;
         private readonly AppService _appService;
         private readonly StoreRepository _storeRepository;
         private readonly CurrencyNameTable _currencyNameTable;
-        private readonly BTCPayServerClient btcpayClient;
         private readonly IAuthorizationService _authorizationService;
+        private readonly GreenfieldStoreAutomatedLightningPayoutProcessorsController _controller;
 
         public UIBoltcardFactoryController(
             PayoutMethodHandlerDictionary payoutHandlers,
-            CurrencyNameTable currencies,
             AppService appService,
+            GreenfieldStoreAutomatedLightningPayoutProcessorsController controller,
             StoreRepository storeRepository,
             CurrencyNameTable currencyNameTable,
-            BTCPayServerClient btcpayClient,
             IAuthorizationService authorizationService)
         {
             _payoutHandlers = payoutHandlers;
-            _currencies = currencies;
             _appService = appService;
+            _controller = controller;
             _storeRepository = storeRepository;
             _currencyNameTable = currencyNameTable;
-            this.btcpayClient = btcpayClient;
             _authorizationService = authorizationService;
         }
         public Data.StoreData CurrentStore => HttpContext.GetStoreData();
@@ -109,18 +107,60 @@ namespace BTCPayServer.Plugins.BoltcardFactory.Controllers
                                 payoutMethodIds.Select(id => new SelectListItem(id.ToString(), id.ToString(), req.PayoutMethods?.Contains(id.ToString()) is not false))
             };
         }
+        
+        async Task<IEnumerable<LightningAutomatedPayoutSettings>>
+            GetStoreLightningAutomatedPayoutProcessors(string storeId, string paymentMethod = null,
+                CancellationToken token = default)
+        {
+            return GetFromActionResult<IEnumerable<LightningAutomatedPayoutSettings>>(
+                await _controller.GetStoreLightningAutomatedPayoutProcessors(storeId, paymentMethod));
+        }
+        async Task<LightningAutomatedPayoutSettings> UpdateStoreLightningAutomatedPayoutProcessors(
+            string storeId, string paymentMethod,
+            LightningAutomatedPayoutSettings request, CancellationToken token = default)
+        {
+            return GetFromActionResult<LightningAutomatedPayoutSettings>(
+                await _controller.UpdateStoreLightningAutomatedPayoutProcessor(storeId, paymentMethod, request));
+        }
+        private T GetFromActionResult<T>(IActionResult result)
+        {
+            HandleActionResult(result);
+            return result switch
+            {
+                JsonResult jsonResult => (T)jsonResult.Value,
+                OkObjectResult { Value: T res } => res,
+                OkObjectResult { Value: JValue res } => res.Value<T>(),
+                _ => default
+            };
+        }
+        private void HandleActionResult(IActionResult result)
+        {
+            switch (result)
+            {
+                case UnprocessableEntityObjectResult { Value: List<GreenfieldValidationError> validationErrors }:
+                    throw new GreenfieldValidationException(validationErrors.ToArray());
+                case BadRequestObjectResult { Value: GreenfieldAPIError error }:
+                    throw new GreenfieldAPIException(400, error);
+                case ObjectResult { Value: GreenfieldAPIError error }:
+                    throw new GreenfieldAPIException(400, error);
+                case NotFoundResult _:
+                    throw new GreenfieldAPIException(404, new GreenfieldAPIError("not-found", ""));
+                default:
+                    return;
+            }
+        }
 
         [Authorize(Policy = Policies.CanModifyStoreSettings, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
         [HttpGet("{appId}/settings/boltcardfactory/setup")]
         public async Task<IActionResult> SetupLightningProcessor(string appId)
         {
             var pmi = PayoutMethodId.Parse("BTC-LN").ToString();
-            var processors = await btcpayClient.GetStoreLightningAutomatedPayoutProcessors(this.CurrentStore.Id);
+            var processors = await GetStoreLightningAutomatedPayoutProcessors(this.CurrentStore.Id, null);
             var processor = processors.FirstOrDefault(p => p.PayoutMethodId == pmi);
             if (processor is null)
                 processor = new() { IntervalSeconds = TimeSpan.FromMinutes(AutomatedPayoutConstants.DefaultIntervalMinutes) };
             processor.ProcessNewPayoutsInstantly = true;
-            await btcpayClient.UpdateStoreLightningAutomatedPayoutProcessors(this.CurrentStore.Id, pmi, processor);
+            await UpdateStoreLightningAutomatedPayoutProcessors(this.CurrentStore.Id, pmi, processor);
             this.TempData.SetStatusMessageModel(new StatusMessageModel()
             {
                 Severity = StatusMessageModel.StatusSeverity.Success,

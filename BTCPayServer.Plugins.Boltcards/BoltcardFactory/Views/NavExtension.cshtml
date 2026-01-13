@@ -18,7 +18,7 @@
 {
 	var appType = AppService.GetAppType(BoltcardFactoryPlugin.AppType)!;
     <li class="nav-item" permission="@Policies.CanModifyStoreSettings">
-        <a asp-area="" asp-controller="UIApps" asp-action="CreateApp" asp-route-storeId="@store.Id" asp-route-appType="@appType.Type" class="nav-link @ViewData.ActivePageClass(AppsNavPages.Create.ToString(), appType.Type)" id="@($"StoreNav-Create{appType.Type}")">
+        <a layout-menu-item="CreateApp-@appType.Type" asp-area="" asp-controller="UIApps" asp-action="CreateApp" asp-route-storeId="@store.Id" asp-route-appType="@appType.Type">
             <vc:icon symbol="nav-pointofsale" />
             <span>@appType.Description</span>
         </a>
@@ -26,12 +26,12 @@
     @foreach (var app in Model.Apps.Where(app => app.AppType == appType.Type))
     {
         <li class="nav-item nav-item-sub" permission="@Policies.CanModifyStoreSettings">
-            <a asp-area="" asp-controller="UIBoltcardFactory" asp-action="UpdateBoltcardFactory" asp-route-appId="@app.Id" class="nav-link @ViewData.ActivePageClass(AppsNavPages.Update.ToString(), app.Id)" id="@($"StoreNav-App-{app.Id}")">
+            <a layout-menu-item="@nameof(BoltcardFactoryPlugin)-@app.Id" asp-area="" asp-controller="UIBoltcardFactory" asp-action="UpdateBoltcardFactory" asp-route-appId="@app.Id">
                 <span>@app.AppName</span>
             </a>
         </li>
         <li class="nav-item nav-item-sub" not-permission="@Policies.CanModifyStoreSettings">
-			<a asp-area="" asp-controller="UIBoltcardFactory" asp-action="ViewBoltcardFactory" asp-route-appId="@app.Id" class="nav-link">
+			<a layout-menu-item="@nameof(BoltcardFactoryPlugin)-@app.Id" asp-area="" asp-controller="UIBoltcardFactory" asp-action="ViewBoltcardFactory" asp-route-appId="@app.Id">
                 <span>@app.AppName</span>
             </a>
         </li>

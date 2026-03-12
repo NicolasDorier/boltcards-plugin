@@ -1,13 +1,13 @@
 <Project Sdk="Microsoft.NET.Sdk.Razor">
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
   </PropertyGroup>
 
   <!-- Plugin specific properties -->
   <PropertyGroup>
     <Product>Boltcards Extension</Product>
     <Description>Program a batch of Boltcards through the Boltcards factory. Then let the users consult their balance, reset, or top-up their cards.</Description>
-    <Version>1.1.12</Version>
+    <Version>1.2.0</Version>
 	<AssemblyName>BTCPayServer.Plugins.Boltcards</AssemblyName>
   </PropertyGroup>
 
@@ -32,8 +32,8 @@
     <ProjectReference Include="..\btcpayserver\BTCPayServer.Abstractions\BTCPayServer.Abstractions.csproj" />
     <ProjectReference Include="..\btcpayserver\BTCPayServer\BTCPayServer.csproj" />
     <!--
-    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.0" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.0" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.4" />
     -->
   </ItemGroup>
 </Project>

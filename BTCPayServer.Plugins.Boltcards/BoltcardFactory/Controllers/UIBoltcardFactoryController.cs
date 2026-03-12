@@ -74,9 +74,6 @@ namespace BTCPayServer.Plugins.BoltcardFactory.Controllers
         [HttpGet("{appId}/settings/boltcardfactory")]
         public IActionResult UpdateBoltcardFactory(string appId)
         {
-            if (CurrentStore is null || GetCurrentApp() is null)
-                return NotFound();
-
             var payoutMethods = _payoutHandlers.GetSupportedPayoutMethods(CurrentStore);
             if (!payoutMethods.Any())
             {

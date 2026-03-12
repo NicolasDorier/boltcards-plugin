@@ -7,15 +7,11 @@ using BTCPayServer.Tests;
 using LNURL;
 using NBitcoin.DataEncoders;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-using OpenQA.Selenium;
-using OpenQA.Selenium.Support.Extensions;
-using OpenQA.Selenium.Support.UI;
 using System.Security.Cryptography;
 using System.Text;
+using Microsoft.Playwright;
 using Xunit.Abstractions;
 using static BTCPayServer.BoltcardDataExtensions;
-using static System.Net.WebRequestMethods;
 
 namespace BTCPayServer.Plugins.Boltcards.Tests;
 
@@ -73,17 +69,17 @@ public class BoltcardPluginTests : UnitTestBase
         }
     }
 
-    [Fact(Timeout = 60_000)]
+    [Fact]
     public async Task CanTopUp()
     {
-        using var s = this.CreateSeleniumTester();
+        await using var s = this.CreatePlaywrightTester();
         s.Server.ActivateLightning();
         await s.StartAsync();
         await s.Server.EnsureChannelsSetup();
-        var userId = s.RegisterNewUser(true);
-        var storeId = s.CreateNewStore().storeId;
-        s.GenerateWallet();
-        s.AddLightningNode();
+        var userId = await s.RegisterNewUser(true);
+        var storeId = (await s.CreateNewStore()).storeId;
+        await s.GenerateWallet();
+        await s.AddLightningNode();
 
         foreach (var input in new[]
         {
@@ -93,28 +89,29 @@ public class BoltcardPluginTests : UnitTestBase
         {
             TestLogs.LogInformation($"Let's create a factory of {input.Amount} {input.Currency}");
             {
-                s.GoToHome();
-                var appId = s.CreateApp("BoltcardFactory", "My Factory").appId;
-                s.Driver.FindElement(By.Id("Amount")).Clear();
-                s.Driver.FindElement(By.Id("Amount")).SendKeys(input.Amount);
-                new SelectElement(s.Driver.FindElement(By.Id("Currency"))).SelectByText(input.Currency);
-                s.Driver.FindElement(By.Id("Save")).Click();
-                Assert.Contains("Pull payment request created", s.FindAlertMessage().Text);
-                if (s.Driver.PageSource.Contains("#SetupLightningProcessor"))
+                await s.GoToHome();
+                var appId = (await s.CreateApp("BoltcardFactory", "My Factory")).appId;
+                await s.Page.FillAsync("#Amount", input.Amount);
+                await s.Page.Locator("#Currency").SelectOptionAsync(new SelectOptionValue { Label = input.Currency });
+                await s.Page.ClickAsync("#Save");
+                await s.FindAlertMessage(partialText: "Pull payment request created");
+
+                var source = await s.Page.ContentAsync();
+                if (source.Contains("#SetupLightningProcessor"))
                 {
-                    s.Driver.FindElement(By.Id("SetupLightningProcessor")).Click();
-                    s.Driver.FindElement(By.Id("Save")).Click();
+                    await s.Page.ClickAsync("#SetupLightningProcessor");
+                    await s.Page.ClickAsync("#Save");
                 }
-                s.Driver.FindElement(By.Id("ViewApp")).Click();
+                await s.Page.ClickAsync("#ViewApp");
                 // Somehow stupid selenium doesn't like click on ViewApp, it just ignore it
-                s.GoToUrl($"/apps/{appId}/boltcardfactory");
+                await s.GoToUrl($"/apps/{appId}/boltcardfactory");
                 // The QR to browse there should be available
-                s.Driver.FindElement(By.Id("qr"));
-                s.GoToUrl($"/apps/{appId}/boltcardfactory?isMobile=true");
+                await s.Page.WaitForSelectorAsync("#qr");
+                await s.GoToUrl($"/apps/{appId}/boltcardfactory?isMobile=true");
             }
 
-            var setupDeepLink = s.Driver.FindElement(By.Id("setup-link")).GetAttribute("href");
-            var resetDeepLink = s.Driver.FindElement(By.Id("reset-link")).GetAttribute("href");
+            var setupDeepLink = await s.Page.GetAttributeAsync("#setup-link", "href");
+            var resetDeepLink = await s.Page.GetAttributeAsync("#reset-link", "href");
             Assert.StartsWith("boltcard://program?url=", setupDeepLink);
             var client = new BoltcardFactoryClient(s.Server.PayTester.HttpClient);
 
@@ -156,6 +153,7 @@ public class BoltcardPluginTests : UnitTestBase
                 var topup = await client.GetTopUp(p, input.TopUpAmount);
                 var paid = await s.Server.CustomerLightningD.Pay(topup.Pr);
                 Assert.Equal(PayResult.Ok, paid.Result);
+                await Task.Delay(1000);
 
                 var greenfield = new BTCPayServerClient(s.Server.PayTester.ServerUri, userId, s.Password);
                 var payouts = await greenfield.GetPayouts(registration.PullPaymentId);

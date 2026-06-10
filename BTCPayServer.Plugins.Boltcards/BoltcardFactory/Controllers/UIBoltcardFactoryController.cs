@@ -5,8 +5,6 @@ using BTCPayServer.Client;
 using BTCPayServer.Controllers;
 using BTCPayServer.Data;
 using BTCPayServer.Filters;
-using BTCPayServer.Models.WalletViewModels;
-using BTCPayServer.Plugins.PointOfSale;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Threading.Tasks;
@@ -14,30 +12,19 @@ using BTCPayServer.Abstractions.Extensions;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.AspNetCore.Mvc.Rendering;
-using BTCPayServer.Plugins.PointOfSale.Models;
 using BTCPayServer.Services.Apps;
 using BTCPayServer.Services.Rates;
 using System.Text.RegularExpressions;
 using System;
 using BTCPayServer.Services.Stores;
 using BTCPayServer.Payments;
-using Microsoft.AspNetCore.Identity;
 using BTCPayServer.Client.Models;
-using Org.BouncyCastle.Ocsp;
-using BTCPayServer.NTag424;
-using NBitcoin.DataEncoders;
-using Newtonsoft.Json;
-using BTCPayServer.Services;
-using BTCPayServer.HostedServices;
 using System.Threading;
 using BTCPayServer.Plugins.BoltcardFactory.ViewModels;
 using BTCPayServer.Controllers.Greenfield;
-using BTCPayServer.Models;
-using Microsoft.Extensions.Logging;
 using BTCPayServer.Payouts;
-using System.Collections;
 using BTCPayServer.PayoutProcessors;
-using BTCPayServer.PayoutProcessors.Lightning;
+using BTCPayServer.Plugins.Wallets.Views.ViewModels;
 using Newtonsoft.Json.Linq;
 
 namespace BTCPayServer.Plugins.BoltcardFactory.Controllers
@@ -69,7 +56,7 @@ namespace BTCPayServer.Plugins.BoltcardFactory.Controllers
             _authorizationService = authorizationService;
         }
         public Data.StoreData CurrentStore => HttpContext.GetStoreData();
-        private AppData GetCurrentApp() => HttpContext.GetAppData();
+        private AppData GetCurrentApp() => HttpContext.GetAppData()!;
         [Authorize(Policy = Policies.CanModifyStoreSettings, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
         [HttpGet("{appId}/settings/boltcardfactory")]
         public IActionResult UpdateBoltcardFactory(string appId)
@@ -106,25 +93,25 @@ namespace BTCPayServer.Plugins.BoltcardFactory.Controllers
         }
         
         async Task<IEnumerable<LightningAutomatedPayoutSettings>>
-            GetStoreLightningAutomatedPayoutProcessors(string storeId, string paymentMethod = null,
+            GetStoreLightningAutomatedPayoutProcessors(string storeId, string? paymentMethod = null,
                 CancellationToken token = default)
         {
             return GetFromActionResult<IEnumerable<LightningAutomatedPayoutSettings>>(
-                await _controller.GetStoreLightningAutomatedPayoutProcessors(storeId, paymentMethod));
+                await _controller.GetStoreLightningAutomatedPayoutProcessors(storeId, paymentMethod)) ?? [];
         }
-        async Task<LightningAutomatedPayoutSettings> UpdateStoreLightningAutomatedPayoutProcessors(
+        async Task<LightningAutomatedPayoutSettings?> UpdateStoreLightningAutomatedPayoutProcessors(
             string storeId, string paymentMethod,
             LightningAutomatedPayoutSettings request, CancellationToken token = default)
         {
             return GetFromActionResult<LightningAutomatedPayoutSettings>(
                 await _controller.UpdateStoreLightningAutomatedPayoutProcessor(storeId, paymentMethod, request));
         }
-        private T GetFromActionResult<T>(IActionResult result)
+        private T? GetFromActionResult<T>(IActionResult result)
         {
             HandleActionResult(result);
             return result switch
             {
-                JsonResult jsonResult => (T)jsonResult.Value,
+                JsonResult jsonResult when jsonResult.Value is T v=> v,
                 OkObjectResult { Value: T res } => res,
                 OkObjectResult { Value: JValue res } => res.Value<T>(),
                 _ => default

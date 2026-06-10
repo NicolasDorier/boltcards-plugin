@@ -1,13 +1,14 @@
 <Project Sdk="Microsoft.NET.Sdk.Razor">
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
+    <NoWarn>$(NoWarn),xUnit1031,xUnit1051</NoWarn>
   </PropertyGroup>
 
   <!-- Plugin specific properties -->
   <PropertyGroup>
     <Product>Boltcards Extension</Product>
     <Description>Program a batch of Boltcards through the Boltcards factory. Then let the users consult their balance, reset, or top-up their cards.</Description>
-    <Version>1.2.0</Version>
+    <Version>1.2.1</Version>
 	<AssemblyName>BTCPayServer.Plugins.Boltcards</AssemblyName>
   </PropertyGroup>
 

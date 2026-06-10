@@ -10,7 +10,7 @@
 
 @inject BTCPayServer.PayoutProcessors.PayoutProcessorService PayoutProcessorService
 
-@model BTCPayServer.Models.WalletViewModels.NewPullPaymentModel
+@model BTCPayServer.Plugins.Wallets.Views.ViewModels.NewPullPaymentModel
 @{
     var appId = @Context.GetRouteValue("appId");
     ViewData.SetLayoutModel(new LayoutModel($"{nameof(BoltcardFactoryPlugin)}-{appId}", "Update Boltcard Factory"));

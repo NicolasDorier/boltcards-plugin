@@ -10,7 +10,6 @@ using Newtonsoft.Json;
 using System.Security.Cryptography;
 using System.Text;
 using Microsoft.Playwright;
-using Xunit.Abstractions;
 using static BTCPayServer.BoltcardDataExtensions;
 
 namespace BTCPayServer.Plugins.Boltcards.Tests;
@@ -119,7 +118,7 @@ public class BoltcardPluginTests : UnitTestBase
             byte[] uid = RandomNumberGenerator.GetBytes(7);
             TestLogs.LogInformation($"Let's setup a new boltcard (will be version 0)");
             {
-                resp = await client.SetupBoltcard(setupDeepLink, uid);
+                resp = await client.SetupBoltcard(setupDeepLink!, uid);
                 Assert.Equal(0, resp.Version);
             }
 
@@ -144,7 +143,7 @@ public class BoltcardPluginTests : UnitTestBase
                 registration = (await db.GetBoltcardRegistration(issuerKey, uid))!;
                 Assert.NotNull(registration);
                 var oldCardKey = issuerKey.CreatePullPaymentCardKey(uid, 0, registration.PullPaymentId);
-                resp = await client.ResetBoltcard(resetDeepLink, resp.LNURLW, picc, issuerKey, oldCardKey);
+                resp = await client.ResetBoltcard(resetDeepLink!, resp.LNURLW, picc, issuerKey, oldCardKey);
                 Assert.Equal(AESKey.Parse(resp.K2), oldCardKey.DeriveAuthenticationKey());
             }
 
